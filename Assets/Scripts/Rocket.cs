@@ -19,10 +19,11 @@ public class Rocket : MonoBehaviour
 
     Rigidbody rigidBody;
     AudioSource audioSource;
-
+    //Since there are only 2 states, better solution would be simple boolean variable isTransitioning
     enum State { Alive, Dying, Transcending }
     State state = State.Alive;
 
+    bool collisionDisabled = true;
 
     // Start is called before the first frame update
     void Start()
@@ -40,12 +41,27 @@ public class Rocket : MonoBehaviour
             RespondToThrustInput();
             RespondToRotateInput();
         }
+        if(Debug.isDebugBuild){
+            RespondToDebugKey();
+        }
+    }
+
+    private void RespondToDebugKey()
+    {
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            LoadNextLevel();
+        }
+        else if (Input.GetKeyDown(KeyCode.C))
+        {
+            collisionDisabled = !collisionDisabled;
+        }
     }
 
     private void OnCollisionEnter(Collision collision)
     {
 
-        if (state != State.Alive) { return; }
+        if (state != State.Alive || !collisionDisabled) { return; }
 
         switch (collision.gameObject.tag)
         {
@@ -86,27 +102,40 @@ public class Rocket : MonoBehaviour
 
     private void LoadNextLevel()
     {
-        SceneManager.LoadScene(1);
+        int currentSceneindex = SceneManager.GetActiveScene().buildIndex;
+        if (currentSceneindex + 1 >= SceneManager.sceneCountInBuildSettings){
+            LoadFirstLevel();
+        } else
+        {
+            SceneManager.LoadScene(currentSceneindex + 1);
+        }
     }
 
 
     private void RespondToRotateInput()
     {
 
-        rigidBody.freezeRotation = true; //take manual control of rotation
+        
 
 
         float rotationThisFrame = rcsThrust * Time.deltaTime;
 
-        if (Input.GetKey(KeyCode.A))
+        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
         {
 
-            transform.Rotate(Vector3.forward * rotationThisFrame);
+            RotateManually(rotationThisFrame);
         }
-        else if (Input.GetKey(KeyCode.D))
+        else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
         {
-            transform.Rotate(-Vector3.forward * rotationThisFrame);
+            RotateManually(-rotationThisFrame);
         }
+
+    }
+
+    private void RotateManually(float rotationThisFrame)
+    {
+        rigidBody.freezeRotation = true; //take manual control of rotation
+        transform.Rotate(Vector3.forward * rotationThisFrame);
         rigidBody.freezeRotation = false;
     }
 
